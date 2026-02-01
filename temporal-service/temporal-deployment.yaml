@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: temporal
+  namespace: infra
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: temporal }
+  template:
+    metadata:
+      labels: { app: temporal }
+    spec:
+      containers:
+      - name: temporal
+        image: temporalio/server:1.24.0
+        env:
+        - name: DB
+          value: temporal
+        - name: POSTGRES_SEEDS
+          value: postgresql
+        - name: POSTGRES_USER
+          value: admin
+        - name: POSTGRES_PWD
+          value: admin123
+        - name: ENABLE_ES
+          value: "true"
+        - name: ES_SEEDS
+          value: elasticsearch
+        - name: ES_VERSION
+          value: v7
+        ports:
+        - containerPort: 7233

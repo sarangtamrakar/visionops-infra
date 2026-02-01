@@ -1,0 +1,37 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: temporal-schema-setup
+  namespace: infra
+spec:
+  backoffLimit: 5
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: admin-tools
+        image: temporalio/admin-tools:1.29
+        env:
+        - name: DB
+          value: postgres
+        - name: POSTGRES_SEEDS
+          value: postgres
+        - name: POSTGRES_USER
+          value: admin
+        - name: POSTGRES_PWD
+          value: admin123
+        - name: POSTGRES_DB
+          value: mydb
+        - name: ES_HOST
+          value: elasticsearch
+        - name: ES_PORT
+          value: "9200"
+        - name: ES_VERSION
+          value: v7
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          temporal-sql-tool setup-schema -v 0.0 &&
+          temporal-sql-tool update-schema -d schema/postgresql/v12/temporal/versioned &&
+          temporal-sql-tool setup-schema -v 0.0 --db visibility &&
+          temporal-sql-tool update-schema -d schema/postgresql/v12/visibility/versioned --db visibility

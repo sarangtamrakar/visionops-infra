@@ -1,0 +1,165 @@
+Mental Model (Important)
+
+In kind:
+
+Each node = one Docker container
+
+You can have:
+
+1 control-plane container
+
+N worker containers
+
+We’ll use labels + fake GPU resources to simulate GPU nodes
+
+🎯 Target Single-Cluster Topology
+visionops-cluster
+│
+├── control-plane (Docker container)
+│
+├── worker-cpu-1
+│   ├── FastAPI gateway
+│   ├── LangGraph agents
+│   ├── Kafka consumers
+│
+├── worker-gpu-1 (simulated)
+│   ├── CV inference pods
+│   ├── Retraining jobs
+│
+├── worker-gpu-2 (simulated)
+│   ├── CV inference pods
+│
+├── worker-infra
+│   ├── Kafka
+│   ├── Postgres
+│   ├── MinIO
+│   ├── MLflow
+
+
+🔥 4–5 Docker containers total → very manageable on Mac M4.
+
+🧱 Step 1 — Create Single kind Cluster with Multiple Nodes
+
+Create config file:
+
+cat <<EOF > kind-visionops.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: visionops
+nodes:
+- role: control-plane
+
+- role: worker
+  labels:
+    node-type: cpu
+
+- role: worker
+  labels:
+    node-type: gpu
+    gpu-pool: inference
+
+- role: worker
+  labels:
+    node-type: gpu
+    gpu-pool: training
+
+- role: worker
+  labels:
+    node-type: infra
+EOF
+
+
+Create cluster:
+
+kind create cluster --config kind-visionops.yaml
+kubectl config use-context kind-visionops
+
+
+Verify:
+
+kubectl get nodes --show-labels
+
+
+You should see 5 nodes, each a Docker container.
+
+🎮 Step 2 — Simulate GPU Resources (CRITICAL)
+
+Since Mac has no NVIDIA GPU, we simulate.
+
+Patch GPU capacity
+kubectl patch node visionops-worker2 \
+  -p '{"status":{"capacity":{"example.com/gpu":"4"}}}'
+
+kubectl patch node visionops-worker3 \
+  -p '{"status":{"capacity":{"example.com/gpu":"4"}}}'
+
+
+Verify:
+
+kubectl describe node visionops-worker2 | grep gpu
+
+
+Now Kubernetes thinks GPUs exist.
+
+🧲 Step 3 — Add Node Affinity Rules
+GPU inference pods
+nodeSelector:
+  node-type: gpu
+resources:
+  requests:
+    example.com/gpu: 1
+
+Infra services (Kafka, DB)
+nodeSelector:
+  node-type: infra
+
+Agents / API
+nodeSelector:
+  node-type: cpu
+
+
+This gives clean workload isolation.
+
+🧩 Step 4 — Namespace Layout (Very Important)
+kubectl create namespace infra
+kubectl create namespace agents
+kubectl create namespace inference
+kubectl create namespace mlops
+kubectl create namespace monitoring
+
+🧬 Step 5 — What Runs Where
+
+| Component          | Namespace | Node Type |
+| ------------------ | --------- | --------- |
+| Postgres           | infra     | infra     |
+| Kafka              | infra     | infra     |
+| MinIO              | infra     | infra     |
+| MLflow             | mlops     | infra     |
+| Airflow            | mlops     | infra     |
+| FastAPI Gateway    | agents    | cpu       |
+| LangGraph Agents   | agents    | cpu       |
+| Inference Services | inference | gpu       |
+| Retraining Jobs    | inference | gpu       |
+
+This is textbook platform design.
+
+🔁 Step 6 — One Request Scheduling Example
+
+When inference pod starts:
+
+nodeSelector:
+  node-type: gpu
+resources:
+  requests:
+    example.com/gpu: 1
+
+
+Kubernetes:
+
+Picks worker-gpu-1 or worker-gpu-2
+
+Decrements fake GPU count
+
+Enforces fairness
+
+💡 LangGraph only decides, Kubernetes executes

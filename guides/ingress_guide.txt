@@ -1,0 +1,134 @@
+What is Ingress (1-minute intuition)
+
+Service → exposes pods inside cluster
+Ingress → exposes services to the outside world using HTTP/HTTPS
+Ingress Controller → the actual reverse proxy (NGINX here)
+👉 In kind, Ingress = NGINX Ingress Controller
+
+
+
+
+STEP 1️⃣ Install NGINX Ingress Controller (for kind)
+This manifest is specifically designed for kind 👇
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+
+
+
+
+
+STEP 1️⃣ Install NGINX Ingress Controller (for kind)
+This manifest is specifically designed for kind 👇
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+
+⏳ Wait until it’s ready
+kubectl wait \
+  --namespace ingress-nginx \
+  --for=condition=Ready pod \
+  --selector=app.kubernetes.io/component=controller \
+  --timeout=180s
+
+✅ Verify
+kubectl get pods -n ingress-nginx
+
+
+You should see:
+
+ingress-nginx-controller-xxxxx   1/1   Running
+
+
+
+STEP 2️⃣ Deploy a Sample App (nginx)
+Create deployment
+kubectl create deployment web --image=nginx
+
+Expose it internally
+kubectl expose deployment web --port=80 --type=ClusterIP
+
+Check:
+
+kubectl get svc web
+
+
+
+STEP 3️⃣ Create Ingress Resource
+
+Create a file:
+
+cat <<EOF > web-ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web-ingress
+spec:
+  rules:
+  - host: web.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: web
+            port:
+              number: 80
+EOF
+
+
+Apply it:
+
+kubectl apply -f web-ingress.yaml
+
+Verify ingress
+kubectl get ingress
+
+
+You’ll see:
+
+web-ingress   web.local
+
+STEP 4️⃣ Map Domain to Localhost (IMPORTANT)
+
+Ingress works by hostname, so we add it locally.
+
+sudo sh -c 'echo "127.0.0.1 web.local" >> /etc/hosts'
+
+STEP 5️⃣ Access Your App 🎉
+
+Open browser:
+
+http://web.local
+
+
+You should see:
+
+Welcome to nginx
+
+🔥 Congratulations — you’re now using real Kubernetes Ingress.
+
+🔍 What’s Happening Under the Hood (Simple)
+Browser
+  ↓ (web.local)
+Ingress (NGINX)
+  ↓
+Service (ClusterIP)
+  ↓
+Pod (nginx)
+
+
+Ingress controller is running as a pod inside your cluster.
+
+☁️ How This Maps to AKS (VERY IMPORTANT)
+Local (kind)	AKS (Azure)
+NGINX Ingress	NGINX Ingress or AGIC
+web.local	myapp.company.com
+/etc/hosts	Azure DNS
+NodePort hack	Azure LoadBalancer
+Same Ingress YAML	✅ YES
+
+👉 Your Ingress YAML works on AKS without changes
+
+Only difference:
+
+AKS exposes Ingress via Azure Load Balancer
+
+kind exposes via localhost

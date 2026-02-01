@@ -1,0 +1,212 @@
+eyJhbGciOiJSUzI1NiIsImtpZCI6IkpROXNWQUN4TVlkVk5IUVM1U3JPQVlmNGVoT0pHWng0S3d1b3VEYXd3SVEifQ.eyJhdWQiOlsiaHR0cHM6Ly9rdWJlcm5ldGVzLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwiXSwiZXhwIjoxNzY5ODUzMjE2LCJpYXQiOjE3Njk4NDk2MTYsImlzcyI6Imh0dHBzOi8va3ViZXJuZXRlcy5kZWZhdWx0LnN2Yy5jbHVzdGVyLmxvY2FsIiwianRpIjoiZjZhOTkzODctMmQwMC00OTQ4LTkxYTQtNDg4MDI5NDRiNzVmIiwia3ViZXJuZXRlcy5pbyI6eyJuYW1lc3BhY2UiOiJrdWJlcm5ldGVzLWRhc2hib2FyZCIsInNlcnZpY2VhY2NvdW50Ijp7Im5hbWUiOiJhZG1pbi11c2VyIiwidWlkIjoiMjdmZWFkNmQtOWEzNy00YjAxLTg1NmItYTUwMmRmNWJiYjcxIn19LCJuYmYiOjE3Njk4NDk2MTYsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDprdWJlcm5ldGVzLWRhc2hib2FyZDphZG1pbi11c2VyIn0.WkTUixQXVWe71D58nAAwaxg0LIz5rKy-bT_r3ogrjTUvXirhNkMBq0BGA5fx7vfQDeI6biMJYqNsg1wuiJERMpkVHQWSqqw5NHVGRPUeu3vH-oHe5z26G7jcaiDz0YhuuAt9EFOYnU_NyJMBVT7WKuyx8YeL3jDk3B6FNsnMeCHs6WrpzRKCXwEwL0fUpkTbhzWh0OI-7y_l6A47Uqj3vo8WJctubpCqaQa6GFkZmgwu6Y1UygOP9WNNqKWRMc24iolVeq1uyV6OZlZ2gDCDooLmdCHUoYKicSyYbJRsWB65rC6sGWTkH2YJhgiuEGrPG5QENNzDBzqrG67gxUO3lg
+
+
+
+
+
+BEST FOR YOU (Right Now)
+👉 Kubernetes Dashboard
+
+Official project
+
+Runs inside the cluster
+
+Great for beginners
+
+No external installs needed
+
+We’ll install this first.
+
+🚀 STEP-BY-STEP: Install Kubernetes Dashboard
+STEP 1️⃣ Deploy Dashboard
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+
+
+Wait:
+
+kubectl get pods -n kubernetes-dashboard
+
+
+All should be Running.
+
+STEP 2️⃣ Create Admin User (Required)
+
+Create file:
+
+cat <<EOF > dashboard-admin.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: admin-user
+  namespace: kubernetes-dashboard
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: admin-user
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: admin-user
+  namespace: kubernetes-dashboard
+EOF
+
+
+Apply:
+
+kubectl apply -f dashboard-admin.yaml
+
+STEP 3️⃣ Get Login Token
+kubectl -n kubernetes-dashboard create token admin-user
+
+
+👉 Copy the entire token (you’ll paste it in browser).
+
+STEP 4️⃣ Access Dashboard (Port Forward)
+kubectl proxy
+
+
+Open browser:
+
+http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/
+
+
+Choose:
+
+Token
+
+Paste token
+
+Login
+
+🎉 You now have a full Kubernetes UI.
+
+🧭 What You Can Do in Dashboard
+
+You can visually:
+
+See nodes
+
+Inspect pods
+
+View logs
+
+Scale deployments
+
+Apply YAML
+
+Debug crashes
+
+Watch events
+
+This helps you connect CLI → YAML → reality.
+
+☁️ How This Maps to AKS
+Local (kind)	AKS
+Kubernetes Dashboard	Optional (often disabled)
+Admin token	Azure AD RBAC
+kubectl proxy	Azure Load Balancer / private access
+
+⚠️ In production, Dashboard is usually:
+
+Restricted
+
+Read-only
+
+Or replaced by Lens / Azure Portal
+
+
+
+
+
+
+
+STEP 1️⃣ Confirm Dashboard Namespace Exists
+
+Run:
+
+kubectl get ns | grep kubernetes-dashboard
+
+
+You should see:
+
+kubernetes-dashboard
+
+
+If yes → continue
+(if not, tell me)
+
+STEP 2️⃣ Create Admin User (THIS WAS MISSED)
+
+Create the file again (or first time):
+
+cat <<EOF > dashboard-admin.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: admin-user
+  namespace: kubernetes-dashboard
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: admin-user
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: admin-user
+  namespace: kubernetes-dashboard
+EOF
+
+
+Apply it:
+
+kubectl apply -f dashboard-admin.yaml
+
+
+You should see:
+
+serviceaccount/admin-user created
+clusterrolebinding.rbac.authorization.k8s.io/admin-user created
+
+STEP 3️⃣ Verify ServiceAccount Exists
+kubectl -n kubernetes-dashboard get sa
+
+
+You should see:
+
+admin-user
+
+STEP 4️⃣ Create Token (Now It WILL Work)
+kubectl -n kubernetes-dashboard create token admin-user
+
+
+👉 Copy the entire token (very long string).
+
+🌐 STEP 5️⃣ Access Dashboard
+
+Start proxy:
+
+kubectl proxy
+
+
+Open browser:
+
+http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/
+
+
+Login:
+
+Select Token
+
+Paste token
+
+Sign in
+
+🎉 Dashboard UI should load

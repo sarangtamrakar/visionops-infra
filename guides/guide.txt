@@ -1,0 +1,62 @@
+TEMPORARY STOP (Best for beginners)
+
+🔹 Use when:
+You want to pause work
+Save laptop battery
+Resume later without losing data
+
+docker stop multi-control-plane multi-worker multi-worker2
+docker start multi-control-plane multi-worker multi-worker2
+kubectl get nodes
+
+****************************************************
+
+Option 2 — FULL RESET (Most Common & Safe)
+
+🔹 Use when:
+Learning
+Something breaks
+You want a clean slate
+
+🔹 Stop + delete cluster
+kind delete cluster --name multi
+
+🔹 Start fresh cluster
+kind create cluster --name multi --config kind-multi.yaml
+
+
+
+🔍 How to Check Cluster State
+Is cluster running?
+kubectl cluster-info
+
+
+What clusters exist?
+kind get clusters
+
+
+Which cluster am I using?
+kubectl config current-context
+
+****************************************************************
+Recommended Workflow (BEGINNER FRIENDLY)
+Daily work:
+docker start multi-control-plane multi-worker multi-worker2
+
+End of day:
+docker stop multi-control-plane multi-worker multi-worker2
+
+Something broke:
+kind delete cluster --name multi
+kind create cluster --name multi --config kind-multi.yaml
+
+
+
+****
+
+| Tool    | Purpose                  |
+| ------- | ------------------------ |
+| kind    | Create / delete clusters |
+| Docker  | Start / stop nodes       |
+| kubectl | Talk to cluster          |
+| YAML    | Define workloads         |

@@ -1,0 +1,10 @@
+# from host vm get access like  as localhost:5432
+kubectl port-forward svc/postgres 5432:5432 -n db &
+kubectl port-forward svc/redis 6379:6379 -n db &
+
+# from another service inside cluster
+From now on, any app you deploy in another namespace can use 
+postgres.db.svc.cluster.local:5432 
+redis.db.svc.cluster.local:6379 
+to connect — this is production-like internal DNS resolution in Kubernetes.
+
